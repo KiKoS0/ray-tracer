@@ -58,6 +58,13 @@ impl<T: Mul<Output = T> + Num + Copy + Into<f64> + Debug + Default> Mul for Vec3
     }
 }
 
+impl<T: Mul<Output = T> + Num + Copy + Into<f64> + Debug + Default> Mul<T> for Vec3<T> {
+    type Output = Self;
+    fn mul(self, t: T) -> Self {
+        Vec3::with_values(self.e[0] * t, self.e[1] * t, self.e[2] * t)
+    }
+}
+
 impl<T: Neg<Output = T> + Num + Copy + Into<f64> + Debug + Default> Neg for Vec3<T> {
     type Output = Self;
     fn neg(self) -> <Self as std::ops::Neg>::Output {
@@ -86,7 +93,6 @@ impl Div<f64> for Vec3<f64> {
         Vec3::with_values(self.e[0] / t, self.e[1] / t, self.e[2] / t)
     }
 }
-
 
 impl Div<f64> for Vec3<f32> {
     type Output = Self;
@@ -149,17 +155,15 @@ impl<T: Num + Copy + Into<f64> + Debug + Default> Vec3<T> {
             self.e[0] * v.e[1] - self.e[1] * v.e[0],
         )
     }
-
-
 }
 
-impl Vec3<f64>{
-    pub fn unit_vec(&self) -> Self{
+impl Vec3<f64> {
+    pub fn unit_vec(&self) -> Self {
         *self / self.length()
     }
 }
-impl Vec3<f32>{
-    pub fn unit_vec(&self) -> Self{
+impl Vec3<f32> {
+    pub fn unit_vec(&self) -> Self {
         *self / self.length()
     }
 }
@@ -263,6 +267,6 @@ mod tests {
         let u: Vec3<f64> = Vec3::with_values(6.0, 4.0, 5.0);
         let a = u.unit_vec();
         let n = (77f64).sqrt();
-        assert_eq!(a,Vec3::with_values(6.0/n,4.0/n,5.0/n));
+        assert_eq!(a, Vec3::with_values(6.0 / n, 4.0 / n, 5.0 / n));
     }
 }
