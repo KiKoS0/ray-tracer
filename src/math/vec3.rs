@@ -145,6 +145,10 @@ impl<T: Num + Copy + Into<f64> + Debug + Default> Vec3<T> {
         }
     }
 
+    pub fn as_std_vec(&self) -> Vec<T>{
+        vec![self.x(),self.y(),self.z()]
+    }
+
     pub fn dot(&self, v: &Self) -> f64 {
         (self.e[0] * v.e[0] + self.e[1] * v.e[1] + self.e[2] * v.e[2]).into()
     }
