@@ -269,4 +269,11 @@ mod tests {
         let n = (77f64).sqrt();
         assert_eq!(a, Vec3::with_values(6.0 / n, 4.0 / n, 5.0 / n));
     }
+
+    #[test]
+    fn self_dot_equals_length_squared() {
+        let u: Vec3<f64> = Vec3::with_values(6.0, 4.0, 5.0);
+        assert_eq!(u.dot(&u),u.length_squared());
+    }
+
 }

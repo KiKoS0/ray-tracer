@@ -10,15 +10,14 @@ pub fn lerp_vector(a: &Vec3<f64>, b: &Vec3<f64>, t: f64) -> Vec3<f64> {
     (*a) * (1.0 - t) + (*b) * t
 }
 
-
-pub fn hit_sphere(center : &Point3<f64>,radius: f64, ray: &Ray) -> Option<f64>{
+pub fn hit_sphere(center: &Point3<f64>, radius: f64, ray: &Ray) -> Option<f64> {
     let oc = ray.origin - (*center);
-    let a = ray.direction.dot(&ray.direction);
-    let b = 2.0 * oc.dot(&ray.direction);
-    let c = oc.dot(&oc) - radius.powi(2);
-    let discriminant = b.powi(2) - 4.0 * a * c; 
+    let a = ray.direction.length_squared();
+    let half_b = oc.dot(&ray.direction);
+    let c = oc.length_squared() - radius * radius;
+    let discriminant = half_b * half_b - a * c;
     match discriminant {
         x if x < 0.0 => None,
-        _ => Some((-b - discriminant.sqrt())/ (2.0* a))
+        _ => Some((-half_b - discriminant.sqrt()) / a),
     }
 }
