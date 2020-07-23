@@ -1,6 +1,6 @@
 use crate::math::{hit_sphere, lerp_vector, Point3, Ray, Vec3};
-use crate::math::hit::Hittable;
-use crate::math::hit::HitRecord::*;
+use crate::libcore::hit::Hittable;
+use crate::libcore::hit::HitRecord::*;
 use std::sync::Arc;
 
 

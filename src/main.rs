@@ -1,14 +1,11 @@
 mod color;
 mod iterator;
+mod libcore;
 mod math;
 mod utility;
-use color::ray_color;
-use color::transform_and_write_color;
-use color::transform_to_u8_color;
-use color::write_color;
-use color::Color;
-use math::hit::Hittable;
-use math::hittable_list::HittableList;
+use color::{ray_color, transform_and_write_color, transform_to_u8_color, write_color, Color};
+use libcore::hit::Hittable;
+use libcore::hittable_list::HittableList;
 use math::sphere::Sphere;
 use math::Point3;
 use math::Ray;
@@ -139,7 +136,7 @@ fn generate_as_png<T: Hittable + Sync>(
     let bands: Vec<(usize, &mut [Color<u8>])> =
         pixels.chunks_mut(image_width).enumerate().collect();
     bands.into_par_iter().for_each(|(i, band)| {
-        let top = i ;
+        let top = i;
         let band_bounds = (image_width, 1);
         render(band, band_bounds, top, *data, world);
     });

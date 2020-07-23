@@ -1,6 +1,6 @@
-use super::Point3;
-use super::Ray;
-use super::Vec3;
+use crate::math::Point3;
+use crate::math::Ray;
+use crate::math::Vec3;
 
 pub enum HitRecord {
     Hit {

@@ -1,6 +1,6 @@
 use super::hit::HitRecord;
 use super::hit::Hittable;
-use super::Ray;
+use crate::math::Ray;
 use std::sync::Arc;
 
 pub struct HittableList<T: Hittable + Send + Sync> {

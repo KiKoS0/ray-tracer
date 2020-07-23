@@ -1,6 +1,6 @@
-use super::hit::HitRecord;
-use super::hit::HitRecord::*;
-use super::hit::Hittable;
+use crate::libcore::hit::HitRecord;
+use crate::libcore::hit::HitRecord::*;
+use crate::libcore::hit::Hittable;
 use super::Point3;
 use super::Ray;
 use super::Vec3;
