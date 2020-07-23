@@ -344,7 +344,6 @@ dependencies = [
  "clap",
  "image",
  "num",
- "num_cpus",
  "rayon",
 ]
 

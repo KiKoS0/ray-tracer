@@ -1,4 +1,7 @@
+pub mod hit;
+pub mod hittable_list;
 pub mod ray;
+pub mod sphere;
 pub mod vec3;
 
 pub use self::ray::Ray;
@@ -20,4 +23,8 @@ pub fn hit_sphere(center: &Point3<f64>, radius: f64, ray: &Ray) -> Option<f64> {
         x if x < 0.0 => None,
         _ => Some((-half_b - discriminant.sqrt()) / a),
     }
+}
+
+pub fn degrees_to_radian(degrees: f64) -> f64 {
+    degrees * std::f64::consts::PI / 180.0
 }

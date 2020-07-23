@@ -1,15 +1,18 @@
 use crate::math::{hit_sphere, lerp_vector, Point3, Ray, Vec3};
+use crate::math::hit::Hittable;
+use crate::math::hit::HitRecord::*;
+use std::sync::Arc;
+
+
 use std::io::{Error, Write};
 
 pub type Color<T> = Vec3<T>;
 
-pub fn ray_color(r: &Ray) -> Color<f64> {
-    let sphere_center = Point3::with_values(0.0, 0.0, -1.0);
-    let t = hit_sphere(&sphere_center, 0.5, r);
-    if let Some(res) = t {
-        let N = (r.at(res) - sphere_center).unit_vec();
-        return Color::with_values(1.0 + N.x(), 1.0 + N.y(), 1.0 + N.z()) * 0.5;
-    }
+pub fn ray_color(r: &Ray, world: & dyn Hittable) -> Color<f64> {
+    match world.hit(r, 0.0, f64::MAX){
+        Hit{normal,..} => return (normal+Color::with_values(1.0, 1.0, 1.0)) * 0.5,
+        _ => ()
+    };
     let unit_direction = r.direction.unit_vec();
     let t = 0.5 * (unit_direction.y() + 1.0);
     // eprintln!("\nray: {:?}\nunit: {:?}\nt: {:?}",r.direction,unit_direction,t);
