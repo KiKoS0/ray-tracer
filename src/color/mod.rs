@@ -1,4 +1,4 @@
-use crate::math::{hit_sphere, lerp_vector, Point3, Ray, Vec3};
+use crate::math::{hit_sphere, lerp, Point3, Ray, Vec3,clamp};
 use crate::libcore::hit::Hittable;
 use crate::libcore::hit::HitRecord::*;
 use std::sync::Arc;
@@ -7,6 +7,8 @@ use std::sync::Arc;
 use std::io::{Error, Write};
 
 pub type Color<T> = Vec3<T>;
+
+
 
 pub fn ray_color(r: &Ray, world: & dyn Hittable) -> Color<f64> {
     match world.hit(r, 0.0, f64::MAX){
@@ -17,8 +19,8 @@ pub fn ray_color(r: &Ray, world: & dyn Hittable) -> Color<f64> {
     let t = 0.5 * (unit_direction.y() + 1.0);
     // eprintln!("\nray: {:?}\nunit: {:?}\nt: {:?}",r.direction,unit_direction,t);
     // let _ = std::io::stderr().flush();
-    Color::with_values(1.0, 1.0, 1.0) * (1.0 - t) + Color::with_values(0.5, 0.7, 1.0) * t;
-    lerp_vector(
+    // Color::with_values(1.0, 1.0, 1.0) * (1.0 - t) + Color::with_values(0.5, 0.7, 1.0) * t;
+    lerp(
         &Color::with_values(1.0, 1.0, 1.0),
         &Color::with_values(0.5, 0.7, 1.0),
         t,
@@ -29,15 +31,30 @@ pub fn write_color<W: Write>(f: &mut W, c: &Color<u8>) -> Result<(), Error> {
     f.write_fmt(format_args!("{:?} {:?} {:?}\n", c.x(), c.y(), c.z()))
 }
 
-pub fn transform_and_write_color<W: Write>(f: &mut W, c: &Color<f64>) -> Result<(), Error> {
-    let c = transform_to_u8_color((c.x(), c.y(), c.z()));
+pub fn transform_and_write_color<W: Write>(f: &mut W, c: &Color<f64>,samples_per_pixel: usize) -> Result<(), Error> {
+    let c = transform_to_u8_color(c,samples_per_pixel);
     write_color(f, &c)
 }
 
-pub fn transform_to_u8_color(e: (f64, f64, f64)) -> Color<u8> {
+macro_rules! clamp_0_1 {
+    ($t: expr) => {
+        clamp($t,0.0,0.999)
+    };
+}
+
+pub fn transform_to_u8_color(pixel_color: &Color<f64>,samples_per_pixel:usize ) -> Color<u8> {
+
+    let scale = 1.0 / samples_per_pixel as f64;
+    let r = pixel_color.x() * scale;
+    let g = pixel_color.y() * scale;
+    let b = pixel_color.z() * scale;
+
+
     Color::with_values(
-        (255.9 * e.0) as u8,
-        (255.9 * e.1) as u8,
-        (255.9 * e.2) as u8,
+        (256.0 * clamp_0_1!(r)) as u8,
+        (256.0 * clamp_0_1!(g)) as u8,
+        (256.0 * clamp_0_1!(b)) as u8,
     )
 }
+
+

@@ -1,16 +1,15 @@
-
 pub mod ray;
 pub mod sphere;
 pub mod vec3;
 
 pub use self::ray::Ray;
 pub use self::vec3::Vec3;
+use core::ops::Add;
+use core::ops::Mul;
 
 pub type Point3<T> = Vec3<T>;
 
-pub fn lerp_vector(a: &Vec3<f64>, b: &Vec3<f64>, t: f64) -> Vec3<f64> {
-    (*a) * (1.0 - t) + (*b) * t
-}
+
 
 pub fn hit_sphere(center: &Point3<f64>, radius: f64, ray: &Ray) -> Option<f64> {
     let oc = ray.origin - (*center);
@@ -24,6 +23,21 @@ pub fn hit_sphere(center: &Point3<f64>, radius: f64, ray: &Ray) -> Option<f64> {
     }
 }
 
+#[inline]
 pub fn degrees_to_radian(degrees: f64) -> f64 {
     degrees * std::f64::consts::PI / 180.0
+}
+
+#[inline]
+pub fn clamp<T: PartialOrd>(value: T, min: T, max: T) -> T {
+    match value {
+        x if x < min => min,
+        x if x > max => max,
+        _ => value,
+    }
+}
+
+#[inline]
+pub fn lerp<T: Copy + Add<Output = T> + Mul<f64, Output = T>>(a: &T, b: &T, t: f64) -> T {
+    (*a) * (1.0 - t) + (*b) * t
 }

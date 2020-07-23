@@ -1,18 +1,16 @@
 use std::str::FromStr;
-use super::math::Point3;
+use crate::libcore::camera::Camera;
 
 extern crate clap;
 use clap::{App, Arg};
 
 #[derive(Clone, Copy)]
 pub struct ThreadData<'a> {
-    pub origin: &'a Point3<f64>,
-    pub horizontal: &'a Point3<f64>,
-    pub vertical: &'a Point3<f64>,
-    pub lower_left_corner: &'a Point3<f64>,
+    pub camera: &'a Camera,
     pub aspect_ratio: f64,
     pub image_height: usize,
     pub image_width: usize,
+    pub samples_per_pixel:usize
 }
 
 pub enum ImageFormat {

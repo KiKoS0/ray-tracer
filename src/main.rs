@@ -4,6 +4,7 @@ mod libcore;
 mod math;
 mod utility;
 use color::{ray_color, transform_and_write_color, transform_to_u8_color, write_color, Color};
+use libcore::camera::Camera;
 use libcore::hit::Hittable;
 use libcore::hittable_list::HittableList;
 use math::sphere::Sphere;
@@ -22,6 +23,8 @@ use image::png::PNGEncoder;
 use image::ColorType;
 extern crate rayon;
 use rayon::prelude::*;
+extern crate rand;
+use rand::random;
 
 fn main() {
     let mut image_width;
@@ -50,25 +53,18 @@ fn main() {
     let aspect_ratio = 16.0 / 9.0;
     let image_height = *image_width as f64 / aspect_ratio;
     let image_width = *image_width;
+    let samples_per_pixel = 100;
 
-    let viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
+    // Camera
 
-    let origin = Point3::with_values(0.0, 0.0, 0.0);
-    let horizontal = Vec3::with_values(viewport_width, 0.0, 0.0);
-    let vertical = Vec3::with_values(0.0, viewport_height, 0.0);
-    let lower_left_corner =
-        origin - horizontal / 2.0 - vertical / 2.0 - Vec3::with_values(0.0, 0.0, focal_length);
+    let cam = Camera::new();
 
     let thread_shared = ThreadData {
-        horizontal: &horizontal,
-        vertical: &vertical,
+        camera: &cam,
         image_height: image_height as usize,
         image_width,
-        origin: &origin,
-        lower_left_corner: &lower_left_corner,
         aspect_ratio,
+        samples_per_pixel,
     };
 
     // World
@@ -138,7 +134,7 @@ fn generate_as_png<T: Hittable + Sync>(
     bands.into_par_iter().for_each(|(i, band)| {
         let top = i;
         let band_bounds = (image_width, 1);
-        render(band, band_bounds, top, *data, world);
+        render(band, band_bounds, top, data, world);
     });
 
     write_image_png(output, &mut pixels, (image_width, image_height as usize))
@@ -148,23 +144,23 @@ fn render(
     pixels: &mut [Color<u8>],
     bounds: (usize, usize),
     top: usize,
-    data: ThreadData,
+    data: &ThreadData,
     world: &dyn Hittable,
 ) {
     for j in 0..bounds.1 {
         for i in 0..bounds.0 {
-            // println!("j: {:?}  i: {:?}", j+ top, i);
-            // std::io::stdout().flush();
-            let u = i as f64 / ((data.image_width - 1) as f64);
-            let v = (data.image_height - 1 - (j + top)) as f64 / ((data.image_height - 1) as f64);
-            let ray = Ray::new(
-                *data.origin,
-                (*data.lower_left_corner) + (*data.horizontal) * u + (*data.vertical) * v
-                    - (*data.origin),
-            );
-            let pixel_color = ray_color(&ray, world);
-            pixels[j * bounds.1 + i] =
-                transform_to_u8_color((pixel_color.x(), pixel_color.y(), pixel_color.z()));
+            let mut pixel_color = Color::new();
+
+            for s in 0..data.samples_per_pixel {
+                let u = (i as f64 + random::<f64>()) / ((data.image_width - 1) as f64);
+                let v = ((data.image_height - 1 - (j + top)) as f64 + random::<f64>())
+                    / ((data.image_height - 1) as f64);
+
+                let ray = data.camera.get_ray(u, v);
+                pixel_color += &ray_color(&ray, world);
+            }
+
+            pixels[j * bounds.1 + i] = transform_to_u8_color(&pixel_color, data.samples_per_pixel);
         }
     }
 }
@@ -178,11 +174,6 @@ fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> 
     let image_width = data.image_width;
     let image_height = image_width as f64 / aspect_ratio;
 
-    let origin = data.origin;
-    let horizontal = data.horizontal;
-    let vertical = data.vertical;
-    let lower_left_corner = data.lower_left_corner;
-
     // println!("P3\n{:?} {:?}\n255", image_width, image_height as u32);
     file.write_fmt(format_args!(
         "P3\n{:?} {:?}\n255\n",
@@ -193,15 +184,17 @@ fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> 
     for i in (0..(image_height as u64)).rev() {
         write!(std::io::stderr(), "\rScanlines remaining: {:?} ", i);
         for j in 0..image_width {
-            let u = j as f64 / ((image_width - 1) as f64);
-            let v = i as f64 / (image_height - 1.0);
+            let mut pixel_color = Color::<f64>::new();
+            for s in 0..data.samples_per_pixel {
+                let u = (j as f64 + random::<f64>()) / ((image_width - 1) as f64);
+                let v = (i as f64 + random::<f64>()) / (image_height - 1.0);
+                let ray = data.camera.get_ray(u, v);
 
-            let ray = Ray::new(
-                *origin,
-                (*lower_left_corner) + (*horizontal) * u + (*vertical) * v - (*origin),
-            );
-            let pixel_color = ray_color(&ray, world.clone());
-            transform_and_write_color(&mut file, &pixel_color).expect("Error writing to stdout")
+                pixel_color += &ray_color(&ray, world);
+            }
+
+            transform_and_write_color(&mut file, &pixel_color, data.samples_per_pixel)
+                .expect("Error writing to stdout")
         }
     }
     return Ok(());
@@ -240,11 +233,14 @@ fn hello_world() {
     for i in (0..height).rev() {
         write!(std::io::stderr(), "\rScanlines remaining: {:?} ", i);
         for j in 0..width {
-            let c = transform_to_u8_color((
-                (j as f64) / (width as f64 - 1.),
-                (i as f64) / (height as f64 - 1.),
-                0.25,
-            ));
+            let c = transform_to_u8_color(
+                &Color::with_values(
+                    (j as f64) / (width as f64 - 1.),
+                    (i as f64) / (height as f64 - 1.),
+                    0.25,
+                ),
+                100,
+            );
             let _ = write_color(&mut std::io::stdout(), &c);
         }
     }

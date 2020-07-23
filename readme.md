@@ -8,4 +8,4 @@ For building you just need [rust](https://rustup.rs/) and run:
 
 
 ## Example
-![Examples](/images/gradient_result.png "Normal shaded sphere")
+![Examples](/images/sphere.png "Normal anti aliased shaded sphere")
