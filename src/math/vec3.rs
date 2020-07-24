@@ -1,4 +1,7 @@
 use num::Num;
+use rand::distributions::Distribution;
+use rand::distributions::Standard;
+use rand::random;
 use std::convert::Into;
 use std::fmt::Debug;
 use std::ops::Add;
@@ -195,6 +198,21 @@ impl Vec3<f64> {
 impl Vec3<f32> {
     pub fn unit_vec(&self) -> Self {
         *self / self.length()
+    }
+}
+
+/// Generic implementation to generate
+/// random vectors3 from T default generators
+impl<T> Distribution<Vec3<T>> for Standard
+where
+    T: Num + Copy + Into<f64> + Debug + Default,
+    Standard: Distribution<T>,
+{
+    fn sample<R: rand::Rng + ?Sized>(&self, _: &mut R) -> Vec3<T>
+    where
+        R: rand::Rng,
+    {
+        Vec3::with_values(random::<T>(), random::<T>(), random::<T>())
     }
 }
 

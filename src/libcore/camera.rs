@@ -6,7 +6,7 @@ pub struct Camera {
     origin: Point3<f64>,
     lower_left_corner: Point3<f64>,
     horizontal: Vec3<f64>,
-    vertical: Vec3<f64>,
+    vertical: Vec3<f64>
 }
 
 impl Camera {

@@ -10,7 +10,8 @@ pub struct ThreadData<'a> {
     pub aspect_ratio: f64,
     pub image_height: usize,
     pub image_width: usize,
-    pub samples_per_pixel:usize
+    pub samples_per_pixel:usize,
+    pub max_depth: usize
 }
 
 pub enum ImageFormat {

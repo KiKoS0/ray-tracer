@@ -1,5 +1,4 @@
 mod color;
-mod iterator;
 mod libcore;
 mod math;
 mod utility;
@@ -54,6 +53,7 @@ fn main() {
     let image_height = *image_width as f64 / aspect_ratio;
     let image_width = *image_width;
     let samples_per_pixel = 100;
+    let max_depth = 50;
 
     // Camera
 
@@ -65,6 +65,7 @@ fn main() {
         image_width,
         aspect_ratio,
         samples_per_pixel,
+        max_depth
     };
 
     // World
@@ -157,7 +158,7 @@ fn render(
                     / ((data.image_height - 1) as f64);
 
                 let ray = data.camera.get_ray(u, v);
-                pixel_color += &ray_color(&ray, world);
+                pixel_color += &ray_color(&ray, world,data.max_depth);
             }
 
             pixels[j * bounds.1 + i] = transform_to_u8_color(&pixel_color, data.samples_per_pixel);
@@ -190,7 +191,7 @@ fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> 
                 let v = (i as f64 + random::<f64>()) / (image_height - 1.0);
                 let ray = data.camera.get_ray(u, v);
 
-                pixel_color += &ray_color(&ray, world);
+                pixel_color += &ray_color(&ray, world,data.max_depth);
             }
 
             transform_and_write_color(&mut file, &pixel_color, data.samples_per_pixel)
