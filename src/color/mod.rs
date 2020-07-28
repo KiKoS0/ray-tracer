@@ -1,4 +1,4 @@
-use crate::math::{hit_sphere, lerp, Point3, Ray, Vec3,clamp,random_in_unit_sphere};
+use crate::math::{hit_sphere, lerp, Point3, Ray, Vec3,clamp,random_in_unit_sphere,random_unit_vector,random_in_hemisphere};
 use crate::libcore::hit::Hittable;
 use crate::libcore::hit::HitRecord::*;
 use std::sync::Arc;
@@ -15,9 +15,10 @@ pub fn ray_color(r: &Ray, world: & dyn Hittable,depth: usize) -> Color<f64> {
         return Color::new();
     }
 
-    match world.hit(r, 0.0, f64::MAX){
+    match world.hit(r, 0.001, f64::MAX){
         Hit{normal,p,..} => {
-            let target = p + normal + random_in_unit_sphere();
+            // let target = p + normal + random_unit_vector();
+            let target =  p + random_in_hemisphere(&normal);
             return ray_color(&Ray::new(p, target-p), world,depth-1) * 0.5;
         },
         _ => ()
