@@ -68,9 +68,9 @@ pub fn random_in_unit_sphere_rejection() -> Vec3<f64> {
 #[inline]
 pub fn random_in_hemisphere(normal: &Vec3<f64>) -> Vec3<f64> {
     let v = random_in_unit_sphere();
-    if v.dot(normal) > 0.0{
+    if v.dot(normal) > 0.0 {
         v
-    }else{
+    } else {
         -v
     }
 }
@@ -84,6 +84,11 @@ pub fn random_unit_vector() -> Vec3<f64> {
     let z = rng.gen_range(-1.0, 1.0);
     let r = (1f64 - z * z).sqrt();
     Vec3::with_values(r * a.cos(), r * a.sin(), z)
+}
+
+#[inline]
+pub fn reflect(v: &Vec3<f64>, n: &Vec3<f64>) -> Vec3<f64> {
+    (*v) - (*n) * v.dot(n) * 2.0
 }
 
 mod tests {

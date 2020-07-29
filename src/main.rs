@@ -2,6 +2,9 @@ mod color;
 mod libcore;
 mod math;
 mod utility;
+use libcore::material::Lambertian;
+use libcore::material::Metallic;
+
 use color::{ray_color, transform_and_write_color, transform_to_u8_color, write_color, Color};
 use libcore::camera::Camera;
 use libcore::hit::Hittable;
@@ -65,19 +68,37 @@ fn main() {
         image_width,
         aspect_ratio,
         samples_per_pixel,
-        max_depth
+        max_depth,
     };
 
     // World
+    let ground_mat = Arc::new(Lambertian::new(Color::with_values(0.5,0.5,0.5)));
+    let center_mat = Arc::new(Lambertian::new(Color::with_values(0.61, 0.38, 0.87)));
+    let right_mat = Arc::new(Metallic::new(Color::with_values(0.8, 0.8, 0.8),0.5));
+    let left_mat = Arc::new(Metallic::new(Color::with_values(0.8, 0.6, 0.2),1.0));
 
     let mut world = HittableList::new();
     world.add(Arc::new(Sphere::new(
-        Point3::with_values(0.0, 0.0, -1.0),
-        0.5,
-    )));
-    world.add(Arc::new(Sphere::new(
         Point3::with_values(0.0, -100.5, -1.0),
         100.0,
+        ground_mat.clone(),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(0.0, 0.0, -1.0),
+        0.5,
+        center_mat.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(-1.0, 0.0, -1.0),
+        0.5,
+        left_mat.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(1.0, 0.0, -1.0),
+        0.5,
+        right_mat.clone(),
     )));
 
     // Render
@@ -158,7 +179,7 @@ fn render(
                     / ((data.image_height - 1) as f64);
 
                 let ray = data.camera.get_ray(u, v);
-                pixel_color += &ray_color(&ray, world,data.max_depth);
+                pixel_color += &ray_color(&ray, world, data.max_depth);
             }
 
             pixels[j * bounds.1 + i] = transform_to_u8_color(&pixel_color, data.samples_per_pixel);
@@ -191,7 +212,7 @@ fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> 
                 let v = (i as f64 + random::<f64>()) / (image_height - 1.0);
                 let ray = data.camera.get_ray(u, v);
 
-                pixel_color += &ray_color(&ray, world,data.max_depth);
+                pixel_color += &ray_color(&ray, world, data.max_depth);
             }
 
             transform_and_write_color(&mut file, &pixel_color, data.samples_per_pixel)
