@@ -2,3 +2,5 @@
 /*.ppm
 /*.png
 /*.log
+/bench
+perf.data*
