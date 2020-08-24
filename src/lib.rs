@@ -1,9 +1,11 @@
-mod color;
-mod libcore;
-mod math;
-mod utility;
+pub mod color;
+pub mod libcore;
+pub mod math;
+pub mod utility;
 use libcore::material::Lambertian;
 use libcore::material::Metallic;
+use libcore::material::Material;
+
 
 use color::{ray_color, transform_and_write_color, transform_to_u8_color, write_color, Color};
 use libcore::camera::Camera;
@@ -28,7 +30,7 @@ use rayon::prelude::*;
 extern crate rand;
 use rand::random;
 
-fn main() {
+pub fn main() {
     let mut image_width;
     let mut out_file;
     let mut format;
@@ -118,7 +120,7 @@ fn main() {
     println!("Done.");
 }
 
-fn generate_as_png<T: Hittable + Sync>(
+pub fn generate_as_png<T: Hittable + Sync>(
     data: &ThreadData,
     output: &String,
     world: &T,
@@ -187,7 +189,7 @@ fn render(
     }
 }
 
-fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> Result<()> {
+pub fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> Result<()> {
     let mut file = match File::create(output) {
         Ok(f) => f,
         Err(err) => return Err(err),
@@ -222,7 +224,7 @@ fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable) -> 
     return Ok(());
 }
 
-fn write_image_png(filename: &str, pixels: &[Color<u8>], bounds: (usize, usize)) -> Result<()> {
+pub fn write_image_png(filename: &str, pixels: &[Color<u8>], bounds: (usize, usize)) -> Result<()> {
     let output = match File::create(filename) {
         Ok(f) => f,
         Err(err) => return Err(err),
@@ -245,7 +247,7 @@ fn write_image_png(filename: &str, pixels: &[Color<u8>], bounds: (usize, usize))
     }
 }
 
-fn hello_world() {
+pub fn hello_world() {
     let args: Vec<String> = std::env::args().collect();
 
     let (width, height): (usize, usize) =

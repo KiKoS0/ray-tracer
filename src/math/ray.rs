@@ -11,9 +11,8 @@ impl Ray {
         Ray { origin, direction }
     }
 
-    pub fn at(&self,t: f64) -> Point3<f64>{
+    #[inline(never)]
+    pub fn at(&self, t: f64) -> Point3<f64> {
         self.origin + self.direction * t
     }
 }
-
-

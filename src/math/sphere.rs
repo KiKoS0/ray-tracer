@@ -1,10 +1,10 @@
+use std::sync::Arc;
 use super::Point3;
 use super::Ray;
 use super::Vec3;
 use crate::libcore::hit::HitRecord;
 use crate::libcore::hit::Hittable;
 use crate::libcore::material::Material;
-use std::sync::Arc;
 
 pub struct Sphere {
     center: Point3<f64>,
@@ -20,6 +20,12 @@ impl Hittable for Sphere {
         let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = half_b * half_b - a * c;
 
+        // This is meant as an optimization
+        // Cloning an Arc a lot of time can be cpu consuming
+        // So instead just share an unsafe reference and make sure
+        // that HitRecords don't outlive the Spheres arcs
+        let mat_ptr = Arc::as_ptr(&self.material);
+
         if discriminant > 0.0 {
             let temp = discriminant.sqrt();
 
@@ -31,7 +37,7 @@ impl Hittable for Sphere {
                     root,
                     ray,
                     &((p - self.center) / self.radius),
-                    self.material.clone(),
+                    unsafe{ &*mat_ptr },
                 ));
             }
             let root = (-half_b + temp) / a;
@@ -42,7 +48,7 @@ impl Hittable for Sphere {
                     root,
                     ray,
                     &((p - self.center) / self.radius),
-                    self.material.clone(),
+                    unsafe{ &*mat_ptr },
                 ));
             }
         };
