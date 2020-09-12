@@ -2,10 +2,10 @@ pub mod color;
 pub mod libcore;
 pub mod math;
 pub mod utility;
+use libcore::material::Dielectric;
 use libcore::material::Lambertian;
-use libcore::material::Metallic;
 use libcore::material::Material;
-
+use libcore::material::Metallic;
 
 use color::{ray_color, transform_and_write_color, transform_to_u8_color, write_color, Color};
 use libcore::camera::Camera;
@@ -27,8 +27,12 @@ use image::png::PNGEncoder;
 use image::ColorType;
 extern crate rayon;
 use rayon::prelude::*;
+
 extern crate rand;
 use rand::random;
+use rand::Rng;
+
+use std::time::Instant;
 
 pub fn main() {
     let mut image_width;
@@ -54,15 +58,30 @@ pub fn main() {
         }
     }
 
-    let aspect_ratio = 16.0 / 9.0;
+    let aspect_ratio = 3.0 / 2.0;
     let image_height = *image_width as f64 / aspect_ratio;
     let image_width = *image_width;
-    let samples_per_pixel = 100;
+    let samples_per_pixel = 500;
     let max_depth = 50;
 
     // Camera
 
-    let cam = Camera::new();
+    let lookfrom = Point3::with_values(13., 2., 3.);
+    let lookat = Point3::with_values(0., 0., 0.);
+    let vup = Vec3::with_values(0., 1., 0.);
+    let dist_to_focus = 10.;
+    let aperture = 0.1;
+    let vfov = 20.;
+
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        vfov,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+    );
 
     let thread_shared = ThreadData {
         camera: &cam,
@@ -74,12 +93,27 @@ pub fn main() {
     };
 
     // World
-    let ground_mat = Arc::new(Lambertian::new(Color::with_values(0.5,0.5,0.5)));
-    let center_mat = Arc::new(Lambertian::new(Color::with_values(0.61, 0.38, 0.87)));
-    let right_mat = Arc::new(Metallic::new(Color::with_values(0.8, 0.8, 0.8),0.5));
-    let left_mat = Arc::new(Metallic::new(Color::with_values(0.8, 0.6, 0.2),1.0));
+    let ground_mat = Arc::new(Lambertian::new(Color::with_values(0.8, 0.8, 0.0)));
+    let center_mat = Arc::new(Lambertian::new(Color::with_values(0.1, 0.2, 0.5)));
+    let left_mat = Arc::new(Dielectric::new(1.5));
+    let right_mat = Arc::new(Metallic::new(Color::with_values(0.8, 0.6, 0.2), 0.0));
+
+    // let left_mat = Arc::new(Lambertian::new(Color::with_values(0., 0., 1.)));
+    // let right_mat = Arc::new(Lambertian::new(Color::with_values(1., 0., 0.)));
 
     let mut world = HittableList::new();
+
+    // world.add(Arc::new(Sphere::new(
+    //     Point3::with_values(-R, 0., -1.0),
+    //     R,
+    //     left_mat.clone(),
+    // )));
+    // world.add(Arc::new(Sphere::new(
+    //     Point3::with_values(R, 0., -1.0),
+    //     R,
+    //     right_mat.clone(),
+    // )));
+
     world.add(Arc::new(Sphere::new(
         Point3::with_values(0.0, -100.5, -1.0),
         100.0,
@@ -91,6 +125,11 @@ pub fn main() {
         center_mat.clone(),
     )));
 
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(-1.0, 0.0, -1.0),
+        -0.45,
+        left_mat.clone(),
+    )));
     world.add(Arc::new(Sphere::new(
         Point3::with_values(-1.0, 0.0, -1.0),
         0.5,
@@ -107,6 +146,9 @@ pub fn main() {
 
     // let _ = func(&thread_shared, &out_file,Box::new(world));
     // let _ = generate_as_ppm(&thread_shared, &out_file, Arc::new(world));
+    let world = random_scene();
+
+    let now = Instant::now();
 
     match user_data {
         ImageFormat::PPM { .. } => {
@@ -117,7 +159,8 @@ pub fn main() {
         }
         _ => panic!(),
     }
-    println!("Done.");
+    let elapsed = now.elapsed();
+    println!("Done. Elapsed: {:.2?}", elapsed);
 }
 
 pub fn generate_as_png<T: Hittable + Sync>(
@@ -175,7 +218,7 @@ fn render(
         for i in 0..bounds.0 {
             let mut pixel_color = Color::new();
 
-            for s in 0..data.samples_per_pixel {
+            for _ in 0..data.samples_per_pixel {
                 let u = (i as f64 + random::<f64>()) / ((data.image_width - 1) as f64);
                 let v = ((data.image_height - 1 - (j + top)) as f64 + random::<f64>())
                     / ((data.image_height - 1) as f64);
@@ -278,4 +321,68 @@ fn parse_pair<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
             _ => None,
         },
     }
+}
+
+fn random_scene() -> HittableList<Sphere> {
+    let mut world = HittableList::new();
+    let ground_mat = Arc::new(Lambertian::new(Color::with_values(0.5, 0.5, 0.5)));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(0., -1000., 0.),
+        1000.,
+        ground_mat.clone(),
+    )));
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = random::<f64>();
+            let center = Point3::with_values(
+                (a as f64) + 0.9 * random::<f64>(),
+                0.2,
+                (b as f64) + 0.9 * random::<f64>(),
+            );
+            if (center - Point3::with_values(4., 0.2, 0.)).length() > 0.9 {
+                if choose_mat < 0.8 {
+                    // diffuse
+                    let albedo = random::<Color<f64>>() * random::<Color<f64>>();
+                    let sphere_mat = Arc::new(Lambertian::new(albedo));
+                    world.add(Arc::new(Sphere::new(center, 0.2, sphere_mat.clone())));
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let mut rng = rand::thread_rng();
+                    let albedo = Color::with_values(
+                        rng.gen_range(0., 0.5),
+                        rng.gen_range(0., 0.5),
+                        rng.gen_range(0., 0.5),
+                    );
+                    let fuzz = rng.gen_range(0., 0.5);
+                    let sphere_mat = Arc::new(Metallic::new(albedo, fuzz));
+                    world.add(Arc::new(Sphere::new(center, 0.2, sphere_mat.clone())));
+                } else {
+                    // glass
+                    let sphere_mat = Arc::new(Dielectric::new(1.5));
+                    world.add(Arc::new(Sphere::new(center, 0.2, sphere_mat.clone())));
+                }
+            }
+        }
+    }
+    let mat1 = Arc::new(Dielectric::new(1.5));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(0., 1., 0.),
+        1.0,
+        mat1.clone(),
+    )));
+    let mat2 = Arc::new(Lambertian::new(Color::with_values(0.4, 0.2, 0.1)));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(-4., 1., 0.),
+        1.0,
+        mat2.clone(),
+    )));
+    let mat3 = Arc::new(Metallic::new(Color::with_values(0.7, 0.6, 0.5), 0.));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(4., 1., 0.),
+        1.0,
+        mat3.clone(),
+    )));
+
+    return world;
 }

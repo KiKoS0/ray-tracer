@@ -9,6 +9,6 @@ For building you just need [rust](https://rustup.rs/) and run:
 
 ## Example
 ### Diffuse render:
-![Examples](/images/sphere.png "Diffuse sphere")
+![Examples](/images/world.png "Diffuse sphere")
 ### Normals render:
 ![Examples](/images/sphere_normal.png "Normal anti aliased shaded sphere")

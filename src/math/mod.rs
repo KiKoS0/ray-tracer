@@ -17,7 +17,7 @@ pub type Point3<T> = Vec3<T>;
 pub fn hit_sphere(center: &Point3<f64>, radius: f64, ray: &Ray) -> Option<f64> {
     let oc = ray.origin - (*center);
     let a = ray.direction.length_squared();
-    let half_b = oc.dot(&ray.direction);
+    let half_b = oc.dot(ray.direction);
     let c = oc.length_squared() - radius * radius;
     let discriminant = half_b * half_b - a * c;
     match discriminant {
@@ -27,7 +27,7 @@ pub fn hit_sphere(center: &Point3<f64>, radius: f64, ray: &Ray) -> Option<f64> {
 }
 
 #[inline]
-pub fn degrees_to_radian(degrees: f64) -> f64 {
+pub fn degrees_to_radians(degrees: f64) -> f64 {
     degrees * std::f64::consts::PI / 180.0
 }
 
@@ -43,6 +43,18 @@ pub fn clamp<T: PartialOrd>(value: T, min: T, max: T) -> T {
 #[inline]
 pub fn lerp<T: Copy + Add<Output = T> + Mul<f64, Output = T>>(a: &T, b: &T, t: f64) -> T {
     (*a) * (1.0 - t) + (*b) * t
+}
+
+#[inline]
+pub fn random_in_unit_disk() -> Vec3<f64> {
+    let mut rng = rand::thread_rng();
+    loop {
+        let p = Vec3::with_values(rng.gen_range(-1., 1.), rng.gen_range(-1., 1.), 0.);
+        if p.length_squared() >= 1. {
+            continue;
+        }
+        return p;
+    }
 }
 
 /// This method uses normally distributed random numbers technique
@@ -89,6 +101,21 @@ pub fn random_unit_vector() -> Vec3<f64> {
 #[inline]
 pub fn reflect(v: &Vec3<f64>, n: &Vec3<f64>) -> Vec3<f64> {
     (*v) - (*n) * v.dot(n) * 2.0
+}
+
+#[inline]
+pub fn refract(v: &Vec3<f64>, n: &Vec3<f64>, eta_over_eta: f64) -> Vec3<f64> {
+    let cos_theta = n.dot(-v);
+    let r_out_perp = ((*n) * cos_theta + *v) * eta_over_eta;
+    let r_out_parallel = (*n) * (-(-r_out_perp.length_squared() + 1.0).abs().sqrt());
+    r_out_perp + r_out_parallel
+}
+
+#[inline]
+pub fn schlick(cosine: f64, ref_idx: f64) -> f64 {
+    let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    r0 = r0.powi(2);
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
 
 mod tests {

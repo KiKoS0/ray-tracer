@@ -79,6 +79,15 @@ impl<T: Neg<Output = T> + Num + Copy + Into<f64> + Debug + Default> Neg for Vec3
         Vec3::with_values(-self.e[0], -self.e[1], -self.e[2])
     }
 }
+
+impl<T: Neg<Output = T> + Num + Copy + Into<f64> + Debug + Default> Neg for &Vec3<T> {
+    type Output = Vec3<T>;
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Vec3::with_values(-self.e[0], -self.e[1], -self.e[2])
+    }
+}
+
 impl<T: Num + Copy + Into<f64> + Debug> AddAssign<T> for Vec3<T> {
     #[inline]
     fn add_assign(&mut self, rhs: T) {
@@ -139,7 +148,13 @@ impl<T: Num + Copy + Into<f64> + Debug> Index<usize> for Vec3<T> {
     }
 }
 
-impl<T: Num + Copy + Into<f64> + Debug + Default> Vec3<T> {
+impl<T: Num + Copy + Debug + Into<f64>> AsRef<Vec3<T>> for Vec3<T> {
+    fn as_ref(&self) -> &Vec3<T> {
+        self
+    }
+}
+
+impl<T: Num + Copy + Into<f64> + Debug + Default + Sized> Vec3<T> {
     #[inline]
     pub fn length(&self) -> f64 {
         self.length_squared().into().sqrt()
@@ -176,8 +191,9 @@ impl<T: Num + Copy + Into<f64> + Debug + Default> Vec3<T> {
     }
 
     #[inline]
-    pub fn dot(&self, v: &Self) -> f64 {
-        (self.e[0] * v.e[0] + self.e[1] * v.e[1] + self.e[2] * v.e[2]).into()
+    pub fn dot<A: AsRef<Vec3<T>>>(&self, v: A) -> f64 {
+        let m = v.as_ref();
+        (self.e[0] * m.e[0] + self.e[1] * m.e[1] + self.e[2] * m.e[2]).into()
     }
 
     #[inline]
@@ -300,7 +316,7 @@ mod tests {
     fn dot() {
         let u = Vec3::with_values(2.0, 4.0, 5.0);
         let v = Vec3::with_values(1.0, 5.0, 2.0);
-        assert_eq!(u.dot(&v), 32.);
+        assert_eq!(u.dot(v), 32.);
     }
 
     #[test]
@@ -321,6 +337,6 @@ mod tests {
     #[test]
     fn self_dot_equals_length_squared() {
         let u: Vec3<f64> = Vec3::with_values(6.0, 4.0, 5.0);
-        assert_eq!(u.dot(&u), u.length_squared());
+        assert_eq!(u.dot(u), u.length_squared());
     }
 }

@@ -12,7 +12,7 @@ pub struct Metallic {
 impl Material for Metallic {
     fn scatter(&self, ray_in: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let reflected = reflect(&ray_in.direction.unit_vec(), &rec.normal);
-        if reflected.dot(&rec.normal) > 0.0 {
+        if reflected.dot(rec.normal) > 0.0 {
             return Some(ScatterRecord {
                 attenuation: self.albedo,
                 scattered: Ray::new(rec.p, reflected + random_in_unit_sphere() * self.fuzz),

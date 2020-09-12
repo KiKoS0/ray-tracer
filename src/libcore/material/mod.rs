@@ -2,14 +2,13 @@ use crate::color::Color;
 use crate::libcore::hit::HitRecord;
 use crate::math::ray::Ray;
 
+mod dielectric;
+mod lambertian;
+mod metallic;
 
-pub mod lambertian;
-pub mod metallic;
-
-
+pub use dielectric::Dielectric;
 pub use lambertian::Lambertian;
 pub use metallic::Metallic;
-
 
 pub struct ScatterRecord {
     pub attenuation: Color<f64>,
