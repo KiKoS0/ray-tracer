@@ -34,6 +34,93 @@ use rand::Rng;
 
 use std::time::Instant;
 
+//user_data : ImageFormat
+pub fn run() -> Vec<u8> {
+    let mut image_width;
+    let mut out_file;
+    let mut format;
+
+    let user_data = parse();
+
+    match &user_data {
+        ImageFormat::PNG { width, filename } => {
+            image_width = width;
+            out_file = filename;
+            format = "png".to_string();
+        }
+        ImageFormat::PPM { width, filename } => {
+            image_width = width;
+            out_file = filename;
+            format = "ppm".to_string();
+        }
+        ImageFormat::Unknown => {
+            writeln!(std::io::stderr(), "Unknown image file format");
+            panic!();
+        }
+    }
+
+    let aspect_ratio = 3.0 / 2.0;
+    let image_height = *image_width as f64 / aspect_ratio;
+    let image_width = *image_width;
+    let samples_per_pixel = 1000;
+    let max_depth = 50;
+
+    // Camera
+
+    let lookfrom = Point3::with_values(13., 2., 3.);
+    let lookat = Point3::with_values(0., 0., 0.);
+    let vup = Vec3::with_values(0., 1., 0.);
+    let dist_to_focus = 10.;
+    let aperture = 0.1;
+    let vfov = 20.;
+
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        vfov,
+        aspect_ratio,
+        aperture,
+        dist_to_focus,
+    );
+
+    let thread_shared = ThreadData {
+        camera: &cam,
+        image_height: image_height as usize,
+        image_width,
+        aspect_ratio,
+        samples_per_pixel,
+        max_depth,
+    };
+
+    let world = random_scene(11);
+
+    // let now = Instant::now();
+    let mut pixels = Vec::new();
+    let mut png_encoded = Vec::new();
+
+    match user_data {
+        ImageFormat::PPM { .. } => {
+            // Unknown behavior for now
+            // let _ = generate_as_ppm(&thread_shared, &out_file, &world);
+        }
+        ImageFormat::PNG { .. } => {
+            pixels = generate_pixels(&thread_shared, &world);
+
+            let _ = write_image_png(
+                &mut png_encoded,
+                &mut pixels,
+                (thread_shared.image_width, thread_shared.image_height),
+            );
+            println!("vector size : {}", png_encoded.len());
+        }
+        _ => panic!(),
+    }
+    // let elapsed = now.elapsed();
+    // println!("Done. Elapsed: {:.2?}", elapsed);
+    return png_encoded;
+}
+
 pub fn main() {
     let mut image_width;
     let mut out_file;
@@ -61,7 +148,7 @@ pub fn main() {
     let aspect_ratio = 3.0 / 2.0;
     let image_height = *image_width as f64 / aspect_ratio;
     let image_width = *image_width;
-    let samples_per_pixel = 500;
+    let samples_per_pixel = 100;
     let max_depth = 50;
 
     // Camera
@@ -146,7 +233,7 @@ pub fn main() {
 
     // let _ = func(&thread_shared, &out_file,Box::new(world));
     // let _ = generate_as_ppm(&thread_shared, &out_file, Arc::new(world));
-    let world = random_scene();
+    let world = random_scene(11);
 
     let now = Instant::now();
 
@@ -163,11 +250,7 @@ pub fn main() {
     println!("Done. Elapsed: {:.2?}", elapsed);
 }
 
-pub fn generate_as_png<T: Hittable + Sync>(
-    data: &ThreadData,
-    output: &String,
-    world: &T,
-) -> Result<()> {
+pub fn generate_pixels<T: Hittable + Sync>(data: &ThreadData, world: &T) -> Vec<Color<u8>> {
     let image_width = data.image_width;
     let image_height = data.image_height;
 
@@ -198,16 +281,39 @@ pub fn generate_as_png<T: Hittable + Sync>(
 
     let bands: Vec<(usize, &mut [Color<u8>])> =
         pixels.chunks_mut(image_width).enumerate().collect();
+
     bands.into_par_iter().for_each(|(i, band)| {
         let top = i;
         let band_bounds = (image_width, 1);
         render(band, band_bounds, top, data, world);
     });
 
-    write_image_png(output, &mut pixels, (image_width, image_height as usize))
+    return pixels;
 }
 
-fn render(
+pub fn generate_as_png<T: Hittable + Sync>(
+    data: &ThreadData,
+    output: &String,
+    world: &T,
+) -> Result<()> {
+    let image_width = data.image_width;
+    let image_height = data.image_height;
+    let mut pixels = generate_pixels(data, world);
+
+    let mut output = match File::create(output) {
+        Ok(f) => f,
+        Err(err) => return Err(err),
+    };
+
+    write_image_png(
+        &mut output,
+        &mut pixels,
+        (image_width, image_height as usize),
+    );
+    return Ok(());
+}
+
+pub fn render(
     pixels: &mut [Color<u8>],
     bounds: (usize, usize),
     top: usize,
@@ -267,21 +373,29 @@ pub fn generate_as_ppm(data: &ThreadData, output: &String, world: &dyn Hittable)
     return Ok(());
 }
 
-pub fn write_image_png(filename: &str, pixels: &[Color<u8>], bounds: (usize, usize)) -> Result<()> {
-    let output = match File::create(filename) {
-        Ok(f) => f,
-        Err(err) => return Err(err),
-    };
-    let encoder = PNGEncoder::new(output);
-    // Flattening a big array takes a lot of time
-    // TODO: Optimize this by making the render function
-    // directly produce the rgb array
-    // let pixels: Vec<&Color<u8>> = pixels.into_iter().rev().collect();
-    let pixels: Vec<u8> = pixels
-        .iter()
-        .flat_map(|s| s.as_std_vec().into_iter())
-        .collect();
-    match encoder.encode(&pixels, bounds.0 as u32, bounds.1 as u32, ColorType::Rgb8) {
+unsafe fn any_as_u8_slice<T>(p: &T) -> &[u8] {
+    ::std::slice::from_raw_parts((p as *const T) as *const u8, ::std::mem::size_of::<T>())
+}
+
+pub fn reinterpret_color_as_u8(data: &mut [Color<u8>]) -> &mut [u8] {
+    let ptr: *mut Color<u8> = data.as_mut_ptr();
+    let a_ptr = ptr as *mut u8;
+    unsafe { std::slice::from_raw_parts_mut(a_ptr, data.len() * 3) }
+}
+
+pub fn write_image_png<T: Write>(
+    output: &mut T,
+    pixels: &mut [Color<u8>],
+    bounds: (usize, usize),
+) -> Result<()> {
+    let encoder = PNGEncoder::new(output.by_ref());
+    let color_data = reinterpret_color_as_u8(pixels);
+    match encoder.encode(
+        &color_data,
+        bounds.0 as u32,
+        bounds.1 as u32,
+        ColorType::Rgb8,
+    ) {
         Ok(_) => Ok(()),
         Err(_) => Err(std::io::Error::new(
             std::io::ErrorKind::Other,
@@ -323,7 +437,52 @@ fn parse_pair<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
     }
 }
 
-fn random_scene() -> HittableList<Sphere> {
+pub fn simple_scene() -> HittableList<Sphere> {
+    let mut world = HittableList::new();
+
+    let ground_mat = Arc::new(Lambertian::new(Color::with_values(0.5, 0.5, 0.5)));
+    let center_mat = Arc::new(Lambertian::new(Color::with_values(0.1, 0.2, 0.5)));
+    let left_mat = Arc::new(Dielectric::new(1.5));
+    let right_mat = Arc::new(Metallic::new(Color::with_values(0.8, 0.6, 0.2), 0.0));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(0., -1000., 0.),
+        1000.,
+        ground_mat.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(0.0, -100.5, -1.0),
+        100.0,
+        ground_mat.clone(),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(0.0, 0.0, -1.0),
+        0.5,
+        center_mat.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(-1.0, 0.0, -1.0),
+        -0.45,
+        left_mat.clone(),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(-1.0, 0.0, -1.0),
+        0.5,
+        left_mat.clone(),
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point3::with_values(1.0, 0.0, -1.0),
+        0.5,
+        right_mat.clone(),
+    )));
+
+    return world;
+}
+
+pub fn random_scene(complexity: usize) -> HittableList<Sphere> {
     let mut world = HittableList::new();
     let ground_mat = Arc::new(Lambertian::new(Color::with_values(0.5, 0.5, 0.5)));
     world.add(Arc::new(Sphere::new(
@@ -331,9 +490,9 @@ fn random_scene() -> HittableList<Sphere> {
         1000.,
         ground_mat.clone(),
     )));
-
-    for a in -11..11 {
-        for b in -11..11 {
+    let complexity = complexity as i64;
+    for a in -complexity..complexity {
+        for b in -complexity..complexity {
             let choose_mat = random::<f64>();
             let center = Point3::with_values(
                 (a as f64) + 0.9 * random::<f64>(),

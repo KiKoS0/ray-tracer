@@ -1,5 +1,6 @@
 use crate::math::{degrees_to_radians, random_in_unit_disk, Point3, Ray, Vec3};
 
+#[derive(Clone, Copy)]
 pub struct Camera {
     origin: Point3<f64>,
     lower_left_corner: Point3<f64>,

@@ -8,9 +8,9 @@ use super::rand::random;
 use core::ops::Add;
 use core::ops::Mul;
 
-extern crate rand_distr;
 use rand::Rng;
-use rand_distr::{Distribution, UnitBall};
+//extern crate rand_distr;
+// use rand_distr::{Distribution, UnitBall};
 
 pub type Point3<T> = Vec3<T>;
 
@@ -70,11 +70,11 @@ pub fn random_in_unit_sphere() -> Vec3<f64> {
 }
 
 /// This method applies the rejection method
-#[inline]
-pub fn random_in_unit_sphere_rejection() -> Vec3<f64> {
-    let v: [f64; 3] = UnitBall.sample(&mut rand::thread_rng());
-    Vec3::with_values(v[0], v[1], v[2])
-}
+// #[inline]
+// pub fn random_in_unit_sphere_rejection() -> Vec3<f64> {
+//     let v: [f64; 3] = UnitBall.sample(&mut rand::thread_rng());
+//     Vec3::with_values(v[0], v[1], v[2])
+// }
 
 /// This method applies the rejection method
 #[inline]

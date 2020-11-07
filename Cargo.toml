@@ -1,6 +1,6 @@
 [package]
 name = "ray-tracer"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["KiKoS"]
 edition = "2018"
 
@@ -9,7 +9,11 @@ edition = "2018"
 [dependencies]
 num="0.3.0"
 image = "0.23.7"
-clap="2.33.1"
+clap="2.33.3"
 rayon ="1.3.1"
-rand="0.7.3"
-rand_distr="0.2.2"
+
+getrandom = { git = 'https://github.com/rust-random/getrandom', rev="c29dd5f", features = ["js"] }
+#rand = { version = "0.7.3" }
+rand = { git = 'https://github.com/KiKoS0/rand', branch="0.7" }
+
+#rand_distr={git = 'https://github.com/KiKoS0/rand', branch="0.7"}

@@ -14,6 +14,7 @@ use std::ops::MulAssign;
 use std::ops::Neg;
 use std::ops::Sub;
 
+#[repr(C, packed)]
 #[derive(Clone, Copy, PartialEq)]
 pub struct Vec3<T>
 where
