@@ -1,5 +1,6 @@
 # Ray tracer
-A rust attempt at a ray tracer.
+A rust attempt at a ray tracer that runs in your browser (compiles to [wasm](https://webassembly.org/)).
+You can check the live demo at this [page](https://kikos.tech/ray-tracer/).
 
 ## Build
 For building you just need [rust](https://rustup.rs/) and run: 
